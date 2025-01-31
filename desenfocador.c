@@ -34,7 +34,12 @@ int main() {
     fstat(shm_fd, &shm_stat);
     void *shm_ptr = mmap(0, shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
+    // Cargar la imagen desde la memoria compartida
     BMPImage img = loadBMPFromMemory(shm_ptr, shm_stat.st_size);
+    if (!img.data) {
+        printf("Error al cargar la imagen desde la memoria compartida.\n");
+        return 1;
+    }
     int mid = img.height / 2;
 
     // Crear hilos
@@ -51,6 +56,10 @@ int main() {
         pthread_join(threads[i], NULL);
     }
 
+    writeBMP("imagen_modificada.bmp", &img);
+
+    munmap(shm_ptr, shm_stat.st_size);
+    close(shm_fd);
     printf("Desenfoque aplicado.\n");
     sem_close(sem_proc);
     return 0;

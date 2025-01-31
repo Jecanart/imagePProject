@@ -25,40 +25,54 @@ BMPImage readBMP(const char *filename) {
 }
 
 BMPImage loadBMPFromMemory(void *ptr, int size) {
-    unsigned char *data = (unsigned char *)ptr;
-    int width = *(int *)&data[18];
-    int height = *(int *)&data[22];
+    BMPImage img;
+    img.data = (unsigned char *)ptr;
+    img.width = *(int *)&img.data[18];  
+    img.height = *(int *)&img.data[22]; 
+    img.size = size; 
 
-    return (BMPImage){data, width, height, size};
+    return img;
 }
 
 void applyBlurFilter(BMPImage *img, int start_row, int end_row) {
+    int kernel[3][3] = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
+    int kernel_sum = 9;
+
     int width = img->width;
     int height = img->height;
     unsigned char *data = img->data;
 
-    int kernel[3][3] = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
-    int kernel_sum = 9;
+    // Calcular el tamaño de las filas con padding
+    int row_padded = (width * 3 + 3) & (~3);
 
+    // Crear un buffer temporal para almacenar los resultados
+    unsigned char *temp_data = malloc(row_padded * height);
+    memcpy(temp_data, data + 54, row_padded * height);  // Copiar solo los datos de píxeles
+
+    // Aplicar el filtro de desenfoque
     for (int y = start_row; y < end_row; y++) {
         for (int x = 1; x < width - 1; x++) {
             int r = 0, g = 0, b = 0;
 
+            // Recorrer el kernel
             for (int ky = -1; ky <= 1; ky++) {
                 for (int kx = -1; kx <= 1; kx++) {
-                    int px = (y + ky) * width + (x + kx);
-                    r += data[px * 3 + 2] * kernel[ky + 1][kx + 1];
-                    g += data[px * 3 + 1] * kernel[ky + 1][kx + 1];
-                    b += data[px * 3 + 0] * kernel[ky + 1][kx + 1];
+                    int pixel_index = ((y + ky) * row_padded) + ((x + kx) * 3);
+                    r += temp_data[pixel_index + 2] * kernel[ky + 1][kx + 1]; // Rojo
+                    g += temp_data[pixel_index + 1] * kernel[ky + 1][kx + 1]; // Verde
+                    b += temp_data[pixel_index + 0] * kernel[ky + 1][kx + 1]; // Azul
                 }
             }
 
-            int index = y * width + x;
-            data[index * 3 + 2] = r / kernel_sum;
-            data[index * 3 + 1] = g / kernel_sum;
-            data[index * 3 + 0] = b / kernel_sum;
+            // Guardar el resultado en el buffer original
+            int pixel_index = (y * row_padded) + (x * 3);
+            data[54 + pixel_index + 2] = r / kernel_sum;  // Rojo
+            data[54 + pixel_index + 1] = g / kernel_sum;  // Verde
+            data[54 + pixel_index + 0] = b / kernel_sum;  // Azul
         }
     }
+
+    free(temp_data);  // Liberar el buffer temporal
 }
 
 void applyEdgeDetection(BMPImage *img, int start_row, int end_row) {
@@ -96,9 +110,26 @@ void writeBMP(const char *filename, BMPImage *img) {
         return;
     }
 
-    fwrite(img->data, 1, img->size, file);
+    // Escribir la cabecera BMP (primeros 54 bytes)
+    if (fwrite(img->data, 1, 54, file) != 54) {
+        printf("Error al escribir la cabecera BMP.\n");
+        fclose(file);
+        return;
+    }
+
+    // Calcular el tamaño de los datos de píxeles
+    int row_padded = (img->width * 3 + 3) & (~3);  // Alinear filas a múltiplo de 4 bytes
+    int pixel_data_size = row_padded * img->height;
+
+    // Escribir los datos de los píxeles
+    if (fwrite(img->data + 54, 1, pixel_data_size, file) != pixel_data_size) {
+        printf("Error al escribir los datos de los píxeles.\n");
+        fclose(file);
+        return;
+    }
+
     fclose(file);
-    printf("Imagen guardada en: %s\n", filename);
+    printf("Imagen guardada correctamente en: %s\n", filename);
 }
 
 
