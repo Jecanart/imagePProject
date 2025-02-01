@@ -9,10 +9,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-
-#define SHM_NAME "/shm_image"
-#define THREADS 4
-
 typedef struct {
     int start_row, end_row;
     BMPImage *img;
@@ -25,8 +21,6 @@ void *blur_filter(void *arg) {
 }
 
 int main() {
-    sem_t *sem_proc = sem_open("/sem_proc", O_CREAT, 0666, 0);
-    sem_wait(sem_proc);
 
     // Acceder a la memoria compartida
     int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
@@ -56,11 +50,8 @@ int main() {
         pthread_join(threads[i], NULL);
     }
 
-    writeBMP("imagen_modificada.bmp", &img);
-
     munmap(shm_ptr, shm_stat.st_size);
     close(shm_fd);
     printf("Desenfoque aplicado.\n");
-    sem_close(sem_proc);
     return 0;
 }

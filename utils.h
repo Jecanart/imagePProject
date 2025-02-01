@@ -1,6 +1,9 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#define SHM_NAME "/shm_image"
+#define THREADS 4
+
 typedef struct {
     unsigned char *data;
     int width, height, size;

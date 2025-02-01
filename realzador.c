@@ -9,9 +9,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-
-#define SHM_NAME "/shm_image"
-
 typedef struct {
     int start_row, end_row;
     BMPImage *img;
@@ -30,11 +27,16 @@ int main() {
     void *shm_ptr = mmap(0, shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
     BMPImage img = loadBMPFromMemory(shm_ptr, shm_stat.st_size);
+    if (!img.data) {
+        printf("Error al cargar la imagen desde la memoria compartida.\n");
+        return 1;
+    }
     int mid = img.height / 2;
 
     applyEdgeDetection(&img, mid, img.height);
     
-    writeBMP("imagen_modificada.bmp", &img);
+    munmap(shm_ptr, shm_stat.st_size);
+    close(shm_fd);
 
     printf("Realce de bordes aplicado.\n");
 

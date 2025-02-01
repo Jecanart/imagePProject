@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <semaphore.h>
@@ -36,16 +37,34 @@ int main() {
     memcpy(shm_ptr, img.data, img.size);
     printf("Imagen cargada en memoria compartida.\n");
 
-    // Crear semáforos
-    sem_t *sem_proc = sem_open("/sem_proc", O_CREAT, 0666, 0);
+    pid_t pid1, pid2;
 
-    // Liberar semáforo para iniciar procesamiento
-    sem_post(sem_proc);
+    if ((pid1 = fork()) == 0) {
+        execlp("./desenfocador", "./desenfocador", (char *)NULL);
+        perror("execlp ha fallado");
+        exit(EXIT_FAILURE);
+    }
+
+    if ((pid2 = fork()) == 0) {
+        execlp("./realzador", "./realzador", (char *)NULL);
+        perror("execlp ha fallado");
+        exit(EXIT_FAILURE);
+    }
+
+    int status;
+    waitpid(pid1, &status, 0);
+    waitpid(pid2, &status, 0);
+
+    BMPImage result = loadBMPFromMemory(shm_ptr, img.size);
+    if (!result.data) {
+        printf("Error al cargar la imagen desde la memoria compartida.\n");
+        return 1;
+    }
+    writeBMP("imagen_modificada.bmp", &result);
 
     // Limpiar recursos
     munmap(shm_ptr, img.size);
     close(shm_fd);
-    sem_close(sem_proc);
     printf("Publicador finalizado.\n");
 
     return 0;
