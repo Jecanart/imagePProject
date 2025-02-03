@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
     BMPImage img;
     char *num_threads = "4";
     char image_path[256];
+    char output_path[512];
     int opt;
 
     while((opt = getopt (argc, argv, "ht:")) != -1) {
@@ -113,7 +114,9 @@ int main(int argc, char **argv) {
         }
 
         // Guardar nueva imagen en un archivo
-        writeBMP("imagen_modificada.bmp", &result);
+        char *dot = strrchr(image_path, '.');
+        sprintf(output_path, "%s_modificado.bmp", image_path);
+        writeBMP(output_path, &result);
         printf("Publicador finalizado.\n");
 
         // Limpiar recursos
