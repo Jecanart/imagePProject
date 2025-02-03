@@ -29,10 +29,4 @@ realzador: realzador.o utils.o
 clean:
 	rm -f $(TARGETS) *.o
 
-# Regla para ejecutar todos los programas en paralelo
-run: all
-	./publicador &
-	./desenfocador &
-	./realzador &
-
 .PHONY: all clean run
