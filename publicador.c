@@ -115,6 +115,7 @@ int main(int argc, char **argv) {
 
         // Guardar nueva imagen en un archivo
         char *dot = strrchr(image_path, '.');
+        *dot = '\0';
         sprintf(output_path, "%s_modificado.bmp", image_path);
         writeBMP(output_path, &result);
         printf("Publicador finalizado.\n");
