@@ -20,25 +20,32 @@ void *edge_filter(void *arg) {
     pthread_exit(NULL);
 }
 
-int main() {
+int main(int argc, char **argv) {
+
+    if (argc != 1) {
+        printf("Uso: realzador");
+        return 1;
+    }
+
+    // Acceder a la memoria compartida
     int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
     struct stat shm_stat;
     fstat(shm_fd, &shm_stat);
     void *shm_ptr = mmap(0, shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
+    // Cargar la imagen desde la memoria compartida
     BMPImage img = loadBMPFromMemory(shm_ptr, shm_stat.st_size);
     if (!img.data) {
         printf("Error al cargar la imagen desde la memoria compartida.\n");
         return 1;
     }
+
     int mid = img.height / 2;
 
     applyEdgeDetection(&img, mid, img.height);
     
+    printf("Realce de bordes aplicado.\n");
     munmap(shm_ptr, shm_stat.st_size);
     close(shm_fd);
-
-    printf("Realce de bordes aplicado.\n");
-
     return 0;
 }
